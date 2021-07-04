@@ -18,6 +18,7 @@ import os.path
 import wget
 
 parser = argparse.ArgumentParser(description='Object Detection using YOLO')
+parser.add_argument('-g', '--gpu', action='store_true', help='Use GPU instead of CPU.')
 parser.add_argument('--image', help='Path to image file.')
 parser.add_argument('--video', help='Path to video file.')
 args = parser.parse_args()
@@ -46,7 +47,10 @@ modelWeights = "model.weights"
 
 net = cv.dnn.readNetFromDarknet(modelConfiguration, modelWeights)
 net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
-net.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
+if args.gpu:
+    net.setPreferableTarget(cv.dnn.DNN_TARGET_OPENCL)
+else:
+    net.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
 
 # Get the names of the output layers
 def getOutputsNames(net):
@@ -146,7 +150,7 @@ if __name__ == "__main__":
         outputFile = args.video[:-4]+'_yolo_out_py.avi'
     else:
         # Webcam input
-        cap = cv.VideoCapture(1)
+        cap = cv.VideoCapture(0)
 
     # Get the video writer initialized to save the output video
     if (not args.image):
@@ -160,12 +164,11 @@ if __name__ == "__main__":
         hasFrame, frame = cap.read()
 
         if not hasFrame:
+            if (not args.image):
+                cv.waitKey(3000)
+                break
             continue
-
-        # if not hasFrame:
-        #    cv.waitKey(3000)
-        #    break
-
+        
         # 4D blob from a frame.
         blob = cv.dnn.blobFromImage(frame, 1/255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
 
